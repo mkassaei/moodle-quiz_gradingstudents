@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Quiz report to help teachers manually grade questions by students.
  *
@@ -347,9 +345,11 @@ class quiz_gradingstudents_report extends quiz_default_report {
             $displayoptions->history = question_display_options::HIDDEN;
             $displayoptions->manualcomment = question_display_options::EDITABLE;
         foreach ($attempt->questions as $slot => $question) {
-            if ($this->normalise_state($question->state) === $grade ||
-                    $question->state === $grade || $grade === 'all') {
-                echo $quba->render_question($slot, $displayoptions, $this->questions[$slot]->number);
+            if (array_key_exists($slot, $this->questions)) {
+                if ($this->normalise_state($question->state) === $grade ||
+                        $question->state === $grade || $grade === 'all') {
+                    echo $quba->render_question($slot, $displayoptions, $this->questions[$slot]->number);
+                }
             }
         }
 
@@ -498,16 +498,18 @@ class quiz_gradingstudents_report extends quiz_default_report {
                     $state = $this->get_current_state_for_this_attempt($attempt->questionattemptid);
                     $questions[$attempt->slot]->state = $state;
 
-                    if ($this->normalise_state($state) === 'needsgrading') {
-                        $needsgrading++;
+                    if (array_key_exists($attempt->slot, $this->questions)) {
+                        if ($this->normalise_state($state) === 'needsgrading') {
+                            $needsgrading++;
+                        }
+                        if ($this->normalise_state($state) === 'autograded') {
+                            $autograded++;
+                        }
+                        if ($this->normalise_state($state) === 'manuallygraded') {
+                            $manuallygraded++;
+                        }
+                        $all++;
                     }
-                    if ($this->normalise_state($state) === 'autograded') {
-                        $autograded++;
-                    }
-                    if ($this->normalise_state($state) === 'manuallygraded') {
-                        $manuallygraded++;
-                    }
-                    $all++;
                 }
             }
             $quizattempt->needsgrading = $needsgrading;
