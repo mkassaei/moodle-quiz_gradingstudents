@@ -13,6 +13,8 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+use mod_quiz\local\reports\report_base;
+use mod_quiz\quiz_attempt;
 
 /**
  * Quiz report to help teachers manually grade questions by students.
@@ -25,7 +27,7 @@
  * @copyright 2013 The Open university
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class quiz_gradingstudents_report extends quiz_default_report {
+class quiz_gradingstudents_report extends report_base {
 
     protected $viewoptions = array();
     protected $questions;
@@ -63,13 +65,13 @@ class quiz_gradingstudents_report extends quiz_default_report {
         $this->questions = quiz_report_get_significant_questions($quiz);
 
         // Process any submitted data.
-        if ($data = data_submitted() && confirm_sesskey() && $this->validate_submitted_marks($usageid, $slots)) {
+        if (data_submitted() && confirm_sesskey() && $this->validate_submitted_marks($usageid, $slots)) {
             $this->process_submitted_data($usageid);
             redirect(new moodle_url('/mod/quiz/report.php',
                 array('id' => $this->cm->id, 'mode' => 'gradingstudents')));
         }
 
-        $hasquestions = quiz_has_questions($quiz->id);;
+        $hasquestions = quiz_has_questions($quiz->id);
 
         // Start output.
         $this->print_header_and_tabs($cm, $course, $quiz, 'gradingstudents');
@@ -146,7 +148,7 @@ class quiz_gradingstudents_report extends quiz_default_report {
         $counts = $attempt->$type;
         $slots = array();
         if ($counts > 0) {
-            foreach ($attempt->questions as $id => $question) {
+            foreach ($attempt->questions as $question) {
                 if ($type === $this->normalise_state($question->state) || $type === 'all') {
                     $slots[] = $question->slot;
                 }
@@ -174,7 +176,7 @@ class quiz_gradingstudents_report extends quiz_default_report {
                 $this->cm->idnumber);
 
         $attempts = $this->get_formatted_student_attempts();
-        if ($groupmode = groups_get_activity_groupmode($this->cm)) {
+        if (groups_get_activity_groupmode($this->cm)) {
             // Groups is being used.
             groups_print_activity_menu($this->cm, $this->list_questions_url());
         }
@@ -196,7 +198,7 @@ class quiz_gradingstudents_report extends quiz_default_report {
         $identityfields = \core_user\fields::get_identity_fields($this->context, true);
 
         $data = array();
-        foreach ($attempts as $key => $attempt) {
+        foreach ($attempts as $attempt) {
             if ($attempt->all == 0) {
                 continue;
             }
@@ -285,7 +287,7 @@ class quiz_gradingstudents_report extends quiz_default_report {
      * @param string $grade the type of slots to grade, e.g. 'needsgrading'.
      */
     protected function display_grading_interface($usageid, $slots, $grade) {
-        global $CFG, $OUTPUT, $PAGE;
+        global $OUTPUT, $PAGE;
 
         $attempts = $this->get_formatted_student_attempts();
         $attempt = $attempts[$usageid];
@@ -293,18 +295,6 @@ class quiz_gradingstudents_report extends quiz_default_report {
          // If not, redirect back to the list.
         if (!$attempt || $attempt->$grade == 0) {
             redirect($this->list_questions_url(), get_string('alldoneredirecting', 'quiz_gradingstudents'));
-        }
-
-        // Prepare the form.
-        $hidden = array(
-            'id' => $this->cm->id,
-            'mode' => 'gradingstudents',
-            'usageid' => $usageid,
-            'slots' => $slots,
-        );
-
-        if (array_key_exists('includeauto', $this->viewoptions)) {
-            $hidden['includeauto'] = $this->viewoptions['includeauto'];
         }
 
         // Print the heading and form.
@@ -405,7 +395,6 @@ class quiz_gradingstudents_report extends quiz_default_report {
     /**
      * Return an array of quiz attempts, augmented by user idnumber.
      *
-     * @param object $quiz quiz settings.
      * @return array of objects containing fields from quiz_attempts with user idnumber.
      */
     private function get_quiz_attempts() {
@@ -486,7 +475,7 @@ class quiz_gradingstudents_report extends quiz_default_report {
             return array();
         }
         $output = array();
-        foreach ($quizattempts as $key => $quizattempt) {
+        foreach ($quizattempts as $quizattempt) {
             $questions = array();
             $needsgrading = 0;
             $autograded = 0;
