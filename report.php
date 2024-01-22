@@ -31,8 +31,6 @@ use mod_quiz\quiz_attempt;
  */
 class quiz_gradingstudents_report extends attempts_report {
 
-    protected $viewoptions = array();
-
     public function display($quiz, $cm, $course) {
         global $OUTPUT;
         // Check permissions.
@@ -42,7 +40,7 @@ class quiz_gradingstudents_report extends attempts_report {
         // Get the URL options.
         $options = new report_display_options('gradingstudents', $quiz, $cm, $course);
         $grade = $options->grade;
-        if (!in_array($options->grade, array('all', 'needsgrading', 'autograded', 'manuallygraded'))) {
+        if (!in_array($options->grade, ['all', 'needsgrading', 'autograded', 'manuallygraded'])) {
             $grade = null;
         }
         $baseurl = $this->base_url($cm);
@@ -55,15 +53,6 @@ class quiz_gradingstudents_report extends attempts_report {
         [$currentgroup, $studentsjoins, $groupstudentsjoins, $allowedjoins] = $this->get_students_joins($cm, $course);
         // Start output.
         $this->print_header_and_tabs($cm, $course, $quiz, 'gradingstudents');
-        if (groups_get_activity_groupmode($cm)) {
-            // Groups is being used.
-            groups_print_activity_menu($cm, $options->get_url());
-        }
-        // Get the current group for the user looking at the report.
-        if ($currentgroup == self::NO_GROUPS_ALLOWED) {
-            echo $OUTPUT->notification(get_string('notingroup'));
-            return;
-        }
         // Load the required questions.
         $questions = quiz_report_get_significant_questions($quiz);
         $table = new report_table($quiz, $this->context, $this->qmsubselect,
@@ -75,7 +64,16 @@ class quiz_gradingstudents_report extends attempts_report {
         if (!$hasquestions) {
             echo quiz_no_questions_message($quiz, $cm, $this->context);
         } else if (!$options->usageid) {
-            $table->set_up_table($allowedjoins, $options);
+            $table->define_table($allowedjoins, $options);
+            if (groups_get_activity_groupmode($cm)) {
+                // Groups is being used.
+                groups_print_activity_menu($cm, $table->baseurl);
+            }
+            // Get the current group for the user looking at the report.
+            if ($currentgroup == self::NO_GROUPS_ALLOWED) {
+                echo $OUTPUT->notification(get_string('notingroup'));
+                return;
+            }
             if ($options->includeauto) {
                 $linktext = get_string('hideautomaticallygraded', 'quiz_gradingstudents');
             } else {
@@ -86,8 +84,9 @@ class quiz_gradingstudents_report extends attempts_report {
             } else {
                 $baseurl->param('includeauto', 1);
             }
+            echo $OUTPUT->heading(get_string('questionsthatneedgrading', 'quiz_gradingstudents'));
             echo html_writer::tag('p', html_writer::link($baseurl, $linktext), ['class' => 'toggleincludeauto']);
-            $table->out($options->pagesize, true);
+            $table->out(0, $table->use_initials);
         } else {
             $table->display_grading_interface($options, $grade, $allowedjoins);
         }
@@ -107,7 +106,7 @@ class quiz_gradingstudents_report extends attempts_report {
             return false;
         }
         if (!$slots) {
-            $slots = array();
+            $slots = [];
         } else {
             $slots = explode(',', $slots);
         }
@@ -131,7 +130,7 @@ class quiz_gradingstudents_report extends attempts_report {
     protected function process_submitted_data($usageid, $quiz, $cm, $course): void {
         global $DB;
         $transaction = $DB->start_delegated_transaction();
-        $attempt = $DB->get_record('quiz_attempts', array('uniqueid' => $usageid));
+        $attempt = $DB->get_record('quiz_attempts', ['uniqueid' => $usageid]);
         $attemptobj = new quiz_attempt($attempt, $quiz, $cm, $course);
         $attemptobj->process_submitted_actions(time());
         $transaction->allow_commit();
@@ -143,6 +142,6 @@ class quiz_gradingstudents_report extends attempts_report {
      * @return moodle_url the URL.
      */
     public static function base_url($cm) {
-        return new moodle_url('/mod/quiz/report.php', array('id' => $cm->id, 'mode' => 'gradingstudents'));
+        return new moodle_url('/mod/quiz/report.php', ['id' => $cm->id, 'mode' => 'gradingstudents']);
     }
 }

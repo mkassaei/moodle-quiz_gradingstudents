@@ -19,6 +19,7 @@ namespace quiz_gradingstudents;
 use html_writer;
 use moodle_url;
 use mod_quiz\local\reports\attempts_report_table;
+use table_sql;
 
 /**
  * This file defines the quiz gradingstudents table for helping teachers manually grade questions by students.
@@ -46,7 +47,9 @@ class report_table extends attempts_report_table {
         }
         $this->rawdata = $this->get_formatted_student_attempts($this->rawdata);
         $this->rawdata = $this->filter_attempts_base_on_grading_status($this->rawdata, $this->options->includeauto);
-
+        // We want to disable paging after get all the data.
+        $this->totalrows = count($this->rawdata);
+        $this->pageable(false);
         parent::build_table();
     }
 
@@ -64,12 +67,19 @@ class report_table extends attempts_report_table {
         return $sortcolumns;
     }
 
+    public function col_fullname($attempt) {
+        // The quiz report normally adds a review link here, but we don't want that,
+        // so call the grandparent method.
+        return table_sql::col_fullname($attempt);
+    }
+
     /**
-     * Set up the table column, headers and sorting.
+     * Define the table column, headers and sorting.
+     *
      * @param $allowedjoins
      * @param $options
      */
-    public function set_up_table($allowedjoins, $options): void {
+    public function define_table($allowedjoins, $options): void {
 
         $this->setup_sql_queries($allowedjoins);
         // Define table columns and headers.
@@ -208,23 +218,6 @@ class report_table extends attempts_report_table {
     }
 
     /**
-     * Get the URL of the front page of the report that lists all attempts.
-     *
-     * @param bool|null $includeauto if not given, use the current setting, otherwise,
-     *      force a particular value of includeauto in the URL.
-     * @return moodle_url the URL.
-     */
-    public function list_questions_url($includeauto = null) {
-        $url = $this->baseurl;
-        if (!$includeauto) {
-            $url->param('includeauto', 1);
-        } else {
-            $url->remove_params('includeauto');
-        }
-        return $url;
-    }
-
-    /**
      * Return url for appropriate questions.
      *
      * @param int $usageid the usage id of the attempt to grade.
@@ -234,7 +227,7 @@ class report_table extends attempts_report_table {
      */
     protected function grade_question_url($usageid, $slots, $grade) {
         $url = \quiz_gradingstudents_report::base_url($this->cm);
-        $url->params(array('usageid' => $usageid, 'slots' => $slots, 'grade' => $grade));
+        $url->params(['usageid' => $usageid, 'slots' => $slots, 'grade' => $grade]);
         return $url;
     }
 
@@ -248,7 +241,7 @@ class report_table extends attempts_report_table {
      */
     protected function format_count_for_table($attempt, $type, $gradestring) {
         $counts = $attempt->$type;
-        $slots = array();
+        $slots = [];
         if ($counts > 0) {
             foreach ($attempt->questions as $question) {
                 if ($type === $this->normalise_state($question->state) || $type === 'all') {
@@ -262,7 +255,7 @@ class report_table extends attempts_report_table {
             $result .= ' ' . html_writer::link($this->grade_question_url(
                     $attempt->usageid, $slots, $type),
                     get_string($gradestring, 'quiz_gradingstudents'),
-                    array('class' => 'gradetheselink'));
+                    ['class' => 'gradetheselink']);
         }
         return $result;
     }
@@ -275,7 +268,7 @@ class report_table extends attempts_report_table {
     public function display_grading_interface(report_display_options $options, $grade, $allowedjoins) {
         global $OUTPUT, $PAGE;
         // We only want to re used the table data for the grading interface, not display the table.
-        $this->set_up_table($allowedjoins, $options);
+        $this->define_table($allowedjoins, $options);
         $this->setup();
         $this->query_db($this->pagesize, false);
         $this->close_recordset();
@@ -292,7 +285,7 @@ class report_table extends attempts_report_table {
         }
         // If not, redirect back to the list.
         if (!$attempt || $attempt->$grade == 0) {
-            redirect(\quiz_gradingstudents_report::list_questions_url(), get_string('alldoneredirecting', 'quiz_gradingstudents'));
+            redirect($this->baseurl, get_string('alldoneredirecting', 'quiz_gradingstudents'));
         }
 
         $usageid = $attempt->usageid;
@@ -320,16 +313,16 @@ class report_table extends attempts_report_table {
         echo implode("\n", $info);
         echo html_writer::tag('p', html_writer::link(\quiz_gradingstudents_report::base_url($this->cm),
             get_string('backtothelistofstudentattempts', 'quiz_gradingstudents')),
-            array('class' => 'mdl-align'));
+            ['class' => 'mdl-align']);
 
         // Display the form with one section for each attempt.
         $sesskey = sesskey();
-        echo html_writer::start_tag('form', array('method' => 'post',
+        echo html_writer::start_tag('form', ['method' => 'post',
                 'action' => $this->grade_question_url($usageid, $slots, $grade),
-                'class' => 'mform', 'id' => 'manualgradingform')) .
+                'class' => 'mform', 'id' => 'manualgradingform']) .
             html_writer::start_tag('div') .
-            html_writer::input_hidden_params(new moodle_url('', array(
-                'usageid' => $usageid, 'slots' => $slots, 'sesskey' => $sesskey)));
+            html_writer::input_hidden_params(new moodle_url('', ['usageid' => $usageid,
+                'slots' => $slots, 'sesskey' => $sesskey]));
         $quba = \question_engine::load_questions_usage_by_activity($usageid);
         $displayoptions = quiz_get_review_options($this->quiz, $attempt, $this->context);
         $displayoptions->generalfeedback = \question_display_options::HIDDEN;
@@ -344,9 +337,9 @@ class report_table extends attempts_report_table {
             }
         }
 
-        echo html_writer::tag('div', html_writer::empty_tag('input', array(
-                'type' => 'submit', 'value' => get_string('saveandgotothelistofattempts', 'quiz_gradingstudents'))),
-                array('class' => 'mdl-align')) .
+        echo html_writer::tag('div', html_writer::empty_tag('input', [
+                'type' => 'submit', 'value' => get_string('saveandgotothelistofattempts', 'quiz_gradingstudents')]),
+                ['class' => 'mdl-align']) .
             html_writer::end_tag('div') . html_writer::end_tag('form');
 
         $PAGE->requires->string_for_js('changesmadereallygoaway', 'moodle');
@@ -366,7 +359,7 @@ class report_table extends attempts_report_table {
                   JOIN {question_attempts} qa ON qa.questionusageid = qu.id
                  WHERE qu.contextid = :contextid
               ORDER BY qa.slot ASC";
-        return $DB->get_records_sql($sql, array('contextid' => $this->context->id));
+        return $DB->get_records_sql($sql, ['contextid' => $this->context->id]);
     }
 
     /**
@@ -381,7 +374,7 @@ class report_table extends attempts_report_table {
                   FROM {question_attempt_steps} qas
                  WHERE questionattemptid = :qaid
               ORDER BY qas.sequencenumber ASC";
-        $states = $DB->get_records_sql($sql, array('qaid' => $attemptid));
+        $states = $DB->get_records_sql($sql, ['qaid' => $attemptid]);
         return end($states)->state;
     }
 
@@ -412,14 +405,14 @@ class report_table extends attempts_report_table {
     protected function get_formatted_student_attempts($quizattempts) {
         $attempts = $this->get_question_attempts();
         if (!$quizattempts) {
-            return array();
+            return [];
         }
         if (!$attempts) {
-            return array();
+            return [];
         }
-        $output = array();
+        $output = [];
         foreach ($quizattempts as $quizattempt) {
-            $questions = array();
+            $questions = [];
             $needsgrading = 0;
             $autograded = 0;
             $manuallygraded = 0;

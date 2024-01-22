@@ -66,6 +66,7 @@ class report_display_options extends attempts_report_options {
     }
 
     public function setup_from_params() {
+        parent::setup_from_params();
         $context = \context_module::instance($this->cm->id);
         $this->grade = optional_param('grade', null, PARAM_ALPHA);
         $this->usageid = optional_param('usageid', 0, PARAM_INT);
@@ -75,6 +76,7 @@ class report_display_options extends attempts_report_options {
         $this->showidentityfields = has_capability('quiz/grading:viewidnumber', $context);
         $this->showconfirmationcode = \quiz_gradingstudents_ou_confirmation_code::quiz_can_have_confirmation_code(
             $this->cm->idnumber);
+
     }
 
     public function get_url_params() {
