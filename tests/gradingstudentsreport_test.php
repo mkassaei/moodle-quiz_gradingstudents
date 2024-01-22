@@ -33,8 +33,8 @@ require_once($CFG->dirroot . '/mod/quiz/report/gradingstudents/report.php');
  * @copyright  2013 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class quiz_gradingstudents_testable_report extends quiz_gradingstudents_report {
-    public function normalise_state($state) {
+class quiz_gradingstudents_testable_report extends quiz_gradingstudents\report_table {
+    public static function normalise_state($state) {
         return parent::normalise_state($state);
     }
 }
@@ -48,12 +48,9 @@ class quiz_gradingstudents_testable_report extends quiz_gradingstudents_report {
  */
 class quiz_gradingstudents_report_testcase extends basic_testcase {
     public function test_normalise_state() {
-        /** @var quiz_gradingstudents_testable_report $report */
-        $report = new quiz_gradingstudents_testable_report();
-
-        $this->assertEquals('needsgrading', $report->normalise_state('needsgrading'));
-        $this->assertEquals('autograded', $report->normalise_state('graded'));
-        $this->assertEquals('manuallygraded', $report->normalise_state('mangr'));
+        $this->assertEquals('needsgrading', quiz_gradingstudents_testable_report::normalise_state('needsgrading'));
+        $this->assertEquals('autograded', quiz_gradingstudents_testable_report::normalise_state('graded'));
+        $this->assertEquals('manuallygraded', quiz_gradingstudents_testable_report::normalise_state('mangr'));
     }
 
 }
