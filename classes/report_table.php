@@ -20,6 +20,7 @@ use html_writer;
 use moodle_url;
 use mod_quiz\local\reports\attempts_report_table;
 use table_sql;
+use qubaid_list;
 
 /**
  * This file defines the quiz gradingstudents table for helping teachers manually grade questions by students.
@@ -347,35 +348,22 @@ class report_table extends attempts_report_table {
             'M.core_formchangechecker.init', [['formid' => 'manualgradingform']]);
     }
 
-
     /**
-     * Return and array of question attempts.
+     * Return an array of question attempts with the latest state.
+     *
+     * @param array $qubaidlist List of question usage ids.
      * @return array an array of question attempts.
      */
-    private function get_question_attempts() {
+    private function get_question_attempts_with_latest_state(array $qubaidlist): array {
         global $DB;
-        $sql = "SELECT qa.id AS questionattemptid, qa.slot, qa.questionid, qu.id AS usageid
-                  FROM {question_usages} qu
-                  JOIN {question_attempts} qa ON qa.questionusageid = qu.id
-                 WHERE qu.contextid = :contextid
-              ORDER BY qa.slot ASC";
-        return $DB->get_records_sql($sql, ['contextid' => $this->context->id]);
-    }
-
-    /**
-     * Return the latest state for a given question.
-     *
-     * @param int $attemptid as question_attempt id.
-     * @return string the attempt state.
-     */
-    private function get_current_state_for_this_attempt($attemptid) {
-        global $DB;
-        $sql = "SELECT qas.*
-                  FROM {question_attempt_steps} qas
-                 WHERE questionattemptid = :qaid
-              ORDER BY qas.sequencenumber ASC";
-        $states = $DB->get_records_sql($sql, ['qaid' => $attemptid]);
-        return end($states)->state;
+        // Sub query to get the latest state of an attempt.
+        $dm = new \question_engine_data_mapper();
+        $qubaids = new qubaid_list($qubaidlist);
+        [$subquery, $subqueryparams] = $dm->question_attempt_latest_state_view('', $qubaids);
+        $sql = "SELECT questionattemptid, slot, questionid, questionusageid AS usageid, state
+                  FROM $subquery sq
+              ORDER BY slot";
+        return $DB->get_records_sql($sql, $subqueryparams);
     }
 
     /**
@@ -403,10 +391,14 @@ class report_table extends attempts_report_table {
      * Return an array of quiz attempts with all relevant information for each attempt.
      */
     protected function get_formatted_student_attempts($quizattempts) {
-        $attempts = $this->get_question_attempts();
         if (!$quizattempts) {
             return [];
         }
+        $usageidlist = array_map(function($quizattempt) {
+            return $quizattempt->usageid;
+        }, $quizattempts);
+
+        $attempts = $this->get_question_attempts_with_latest_state($usageidlist);
         if (!$attempts) {
             return [];
         }
@@ -420,17 +412,16 @@ class report_table extends attempts_report_table {
             foreach ($attempts as $attempt) {
                 if ($quizattempt->usageid === $attempt->usageid) {
                     $questions[$attempt->slot] = $attempt;
-                    $state = $this->get_current_state_for_this_attempt($attempt->questionattemptid);
-                    $questions[$attempt->slot]->state = $state;
+                    $questions[$attempt->slot]->state = $attempt->state;
 
                     if (array_key_exists($attempt->slot, $this->questions)) {
-                        if ($this->normalise_state($state) === 'needsgrading') {
+                        if ($this->normalise_state($attempt->state) === 'needsgrading') {
                             $needsgrading++;
                         }
-                        if ($this->normalise_state($state) === 'autograded') {
+                        if ($this->normalise_state($attempt->state) === 'autograded') {
                             $autograded++;
                         }
-                        if ($this->normalise_state($state) === 'manuallygraded') {
+                        if ($this->normalise_state($attempt->state) === 'manuallygraded') {
                             $manuallygraded++;
                         }
                         $all++;
