@@ -344,8 +344,7 @@ class report_table extends attempts_report_table {
             html_writer::end_tag('div') . html_writer::end_tag('form');
 
         $PAGE->requires->string_for_js('changesmadereallygoaway', 'moodle');
-        $PAGE->requires->yui_module('moodle-core-formchangechecker',
-            'M.core_formchangechecker.init', [['formid' => 'manualgradingform']]);
+        $PAGE->requires->js_call_amd('core_form/changechecker', 'watchFormById', ['manualgradingform']);
     }
 
     /**
