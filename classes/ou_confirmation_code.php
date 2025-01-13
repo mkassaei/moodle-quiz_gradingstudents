@@ -143,7 +143,7 @@ class quiz_gradingstudents_ou_confirmation_code {
      * @param stdClass $user user.
      * @return string[] array with two elements, [$module, $pres].
      */
-    protected static function update_for_variant(string $module, string $pres, $cm, stdClass $user): array {
+    public static function update_for_variant(string $module, string $pres, $cm, stdClass $user): array {
         global $DB;
 
         $variantgroups = $DB->get_records_sql("
