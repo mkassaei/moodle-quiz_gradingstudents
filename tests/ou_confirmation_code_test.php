@@ -124,9 +124,12 @@ class quiz_gradingstudents_ou_confirmation_code_test extends advanced_testcase {
         $generator->enrol_user($student2->id, $course->id);
 
         // Create variant groups with teacher and student in it.
+        $grouping = $generator->create_grouping(['courseid' => $course->id, 'name' => 'Variant groups (SK121-13J)']);
         $group = $generator->create_group(['courseid' => $course->id, 'name' => 'SK121-13R variant group']);
+        groups_assign_grouping($grouping->id, $group->id);
         groups_add_member($group, $student1);
         $group = $generator->create_group(['courseid' => $course->id, 'name' => 'SDK121-13J variant group']);
+        groups_assign_grouping($grouping->id, $group->id);
         groups_add_member($group, $student2);
 
         // CVP entries.
