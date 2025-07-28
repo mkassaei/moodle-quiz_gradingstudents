@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 use mod_quiz\local\reports\attempts_report;
 use quiz_gradingstudents\report_table;
 use quiz_gradingstudents\report_display_options;
@@ -30,7 +31,7 @@ use mod_quiz\quiz_attempt;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class quiz_gradingstudents_report extends attempts_report {
-
+    #[\Override]
     public function display($quiz, $cm, $course) {
         global $OUTPUT;
         // Check permissions.
@@ -55,8 +56,16 @@ class quiz_gradingstudents_report extends attempts_report {
         $this->print_header_and_tabs($cm, $course, $quiz, 'gradingstudents');
         // Load the required questions.
         $questions = quiz_report_get_significant_questions($quiz);
-        $table = new report_table($quiz, $this->context, $this->qmsubselect,
-            $options, $groupstudentsjoins, $studentsjoins, $questions, $options->get_url());
+        $table = new report_table(
+            $quiz,
+            $this->context,
+            $this->qmsubselect,
+            $options,
+            $groupstudentsjoins,
+            $studentsjoins,
+            $questions,
+            $options->get_url()
+        );
         $table->cm = $cm;
 
         $hasquestions = quiz_has_questions($quiz->id);
@@ -91,7 +100,6 @@ class quiz_gradingstudents_report extends attempts_report {
             $table->display_grading_interface($options, $grade, $allowedjoins);
         }
         return true;
-
     }
 
     /**

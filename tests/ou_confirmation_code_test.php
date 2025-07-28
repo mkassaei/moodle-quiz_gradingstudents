@@ -14,19 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace quiz_gradingstudents;
+namespace quiz_gradingstudents\privacy;
+
+use advanced_testcase;
+use local_oudataload\util;
+
 /**
  * Unit tests for {@link quiz_grading_students_exam_confirmation_code}
  *
  * @package   quiz_gradingstudents
  * @copyright 2013 The Open University
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers ::quiz_gradingstudents_ou_confirmation_code
  */
-class quiz_gradingstudents_ou_confirmation_code_test extends advanced_testcase {
+final class ou_confirmation_code_test extends advanced_testcase {
     /**
      * Data provider for test_quiz_can_have_confirmation_code.
      * @return array
      */
-    public function quiz_can_have_confirmation_code_cases(): array {
+    public static function quiz_can_have_confirmation_code_cases(): array {
         return [
             ['sk121-13r.eca30', 'eca30'],
             ['sk121-13j.exm01', 'exm01'],
@@ -38,32 +45,67 @@ class quiz_gradingstudents_ou_confirmation_code_test extends advanced_testcase {
     }
 
     /**
-     * @dataProvider quiz_can_have_confirmation_code_cases
+     * Test whetehr quiz can have confirmation code.
      *
+     * @dataProvider quiz_can_have_confirmation_code_cases
      * @param string $idnumber
      * @param string|null $expectedresult
      */
-    public function test_quiz_can_have_confirmation_code(string $idnumber, ?string $expectedresult = null) {
-        $this->assertSame($expectedresult,
-                quiz_gradingstudents_ou_confirmation_code::quiz_can_have_confirmation_code($idnumber));
+    public function test_quiz_can_have_confirmation_code(string $idnumber, ?string $expectedresult = null): void {
+        $this->assertSame(
+            $expectedresult,
+            \quiz_gradingstudents_ou_confirmation_code::quiz_can_have_confirmation_code($idnumber)
+        );
     }
 
-    public function test_calculate_hash() {
-        $this->assertEquals('PYWF', quiz_gradingstudents_ou_confirmation_code::calculate_hash(
-                'R335671X L120 1 12P TMA30'));
+    /**
+     * Test calculate_hash.
+     *
+     */
+    public function test_calculate_hash(): void {
+        $this->assertEquals(
+            'PYWF',
+            \quiz_gradingstudents_ou_confirmation_code::calculate_hash(
+                'R335671X L120 1 12P TMA30'
+            )
+        );
 
         // Example from #7168.
-        $this->assertEquals('DZSD', quiz_gradingstudents_ou_confirmation_code::calculate_hash(
-                'B7435280 SK121 1 13R ECA30'));
+        $this->assertEquals(
+            'DZSD',
+            \quiz_gradingstudents_ou_confirmation_code::calculate_hash(
+                'B7435280 SK121 1 13R ECA30'
+            )
+        );
     }
 
-    public function test_calculate_confirmation_code() {
-        $this->assertEquals('PYWF', quiz_gradingstudents_ou_confirmation_code::calculate_confirmation_code(
-                'R335671X', 'L120', '12P', 'TMA30', 1));
+    /**
+     * Test calculate_confirmation_code.
+     *
+     */
+    public function test_calculate_confirmation_code(): void {
+        $this->assertEquals(
+            'PYWF',
+            \quiz_gradingstudents_ou_confirmation_code::calculate_confirmation_code(
+                'R335671X',
+                'L120',
+                '12P',
+                'TMA30',
+                1
+            )
+        );
 
         // Example from #7168.
-        $this->assertEquals('DZSD', quiz_gradingstudents_ou_confirmation_code::calculate_confirmation_code(
-                'B7435280', 'SK121', '13R', 'ECA30', 1));
+        $this->assertEquals(
+            'DZSD',
+            \quiz_gradingstudents_ou_confirmation_code::calculate_confirmation_code(
+                'B7435280',
+                'SK121',
+                '13R',
+                'ECA30',
+                1
+            )
+        );
     }
 
     /**
@@ -71,7 +113,7 @@ class quiz_gradingstudents_ou_confirmation_code_test extends advanced_testcase {
      *
      * @return array
      */
-    public function get_confirmation_code_cases(): array {
+    public static function get_confirmation_code_cases(): array {
         return [
             ['sk121-13r.eca30', 'B7435280', 'DZSD'], // From issue #7168.
             ['sk121-13j.exm01', 'B7435280', 'VZVG'], // From issue #7168.
@@ -93,10 +135,15 @@ class quiz_gradingstudents_ou_confirmation_code_test extends advanced_testcase {
      * @param string $useridnumber
      * @param string|null $expectedcode
      */
-    public function test_get_confirmation_code(string $quizidnumber, string $useridnumber, ?string $expectedcode) {
-        $code = quiz_gradingstudents_ou_confirmation_code::get_confirmation_code(
-                        (object) ['id' => 12, 'course' => 23, 'idnumber' => $quizidnumber],
-                        (object) ['id' => 123, 'idnumber' => $useridnumber]);
+    public function test_get_confirmation_code(
+        string $quizidnumber,
+        string $useridnumber,
+        ?string $expectedcode
+    ): void {
+        $code = \quiz_gradingstudents_ou_confirmation_code::get_confirmation_code(
+            (object) ['id' => 12, 'course' => 23, 'idnumber' => $quizidnumber],
+            (object) ['id' => 123, 'idnumber' => $useridnumber]
+        );
 
         if ($expectedcode === null) {
             $this->assertNull($code);
@@ -105,7 +152,12 @@ class quiz_gradingstudents_ou_confirmation_code_test extends advanced_testcase {
         }
     }
 
-    public function test_with_variant_groups() {
+    /**
+     * Verify variant groups.
+     *
+     * @covers ::variant groups
+     */
+    public function test_with_variant_groups(): void {
         global $DB;
 
         if (!class_exists('\local_oudataload\util')) {
@@ -117,7 +169,7 @@ class quiz_gradingstudents_ou_confirmation_code_test extends advanced_testcase {
         // Create a course and some test users.
         $generator = $this->getDataGenerator();
         $course = $generator->create_course(['format' => 'oustudyplan',
-                'shortname' => 'SK121-13J', ['createsections' => false]]);
+            'shortname' => 'SK121-13J', ['createsections' => false]]);
         $student1 = $generator->create_user(['idnumber' => 'B7435280']);
         $student2 = $generator->create_user(['idnumber' => 'B7435281']);
         $generator->enrol_user($student1->id, $course->id);
@@ -144,12 +196,16 @@ class quiz_gradingstudents_ou_confirmation_code_test extends advanced_testcase {
                     ('SDK121', '13J', 'SK121-13J', ?, 'Y')
                 ", [$recentpast, $recentpast, $recentpast]);
 
-        $fakecm = (object) ['id' => 12, 'course' => $course->id, 'idnumber' => 'sk121-13j.exm01'];
+        $fakecm = (object)['id' => 12, 'course' => $course->id, 'idnumber' => 'sk121-13j.exm01'];
 
         // Test.
-        $this->assertEquals('VGWM', quiz_gradingstudents_ou_confirmation_code::get_confirmation_code(
-                $fakecm, $student1));
-        $this->assertEquals('CSGS', quiz_gradingstudents_ou_confirmation_code::get_confirmation_code(
-                $fakecm, $student2));
+        $this->assertEquals(
+            'VGWM',
+            \quiz_gradingstudents_ou_confirmation_code::get_confirmation_code($fakecm, $student1)
+        );
+        $this->assertEquals(
+            'CSGS',
+            \quiz_gradingstudents_ou_confirmation_code::get_confirmation_code($fakecm, $student2)
+        );
     }
 }

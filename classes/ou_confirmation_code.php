@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+use local_oudataload\backend;
+
 /**
  * This class implements the OU's 'Confirmation code' algorithm for end-of-course assessed tasks.
  *
@@ -86,8 +88,13 @@ class quiz_gradingstudents_ou_confirmation_code {
      * @param int $version defaults to 1.
      * @return string The confirmation code.
      */
-    public static function calculate_confirmation_code(string $pi, string $module, string $pres,
-            string $task, int $version): string {
+    public static function calculate_confirmation_code(
+        string $pi,
+        string $module,
+        string $pres,
+        string $task,
+        int $version
+    ): string {
         return self::calculate_hash($pi . $module . $version . $pres . $task);
     }
 
@@ -134,6 +141,9 @@ class quiz_gradingstudents_ou_confirmation_code {
      * @return string[] array with two elements, [$module, $pres].
      */
     public static function update_for_variant(string $module, string $pres, $cm, stdClass $user): array {
+        if (!class_exists('\local_oudataload\backend')) {
+            return [$module, $pres];
+        }
         $variants = \local_oudataload\backend::get_course_and_pres_codes($cm->course, $user->id);
         if (!$variants) {
             return [$module, $pres];

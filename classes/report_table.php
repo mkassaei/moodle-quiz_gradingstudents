@@ -30,18 +30,47 @@ use qubaid_list;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class report_table extends attempts_report_table {
-
     /**
      * @var object cm current course module object of this table.
      */
     public $cm;
 
-    public function __construct($quiz, $context, $qmsubselect, report_display_options $options,
-        \core\dml\sql_join $groupstudentsjoins, \core\dml\sql_join $studentsjoins, $questions, $reporturl) {
-        parent::__construct('mod-quiz-report-gradingstudents-report', $quiz, $context,
-            $qmsubselect, $options, $groupstudentsjoins, $studentsjoins, $questions, $reporturl);
+    /**
+     * Construct the report table.
+     *
+     * @param $quiz
+     * @param $context
+     * @param $qmsubselect
+     * @param report_display_options $options
+     * @param \core\dml\sql_join $groupstudentsjoins
+     * @param \core\dml\sql_join $studentsjoins
+     * @param $questions
+     * @param $reporturl
+     */
+    public function __construct(
+        $quiz,
+        $context,
+        $qmsubselect,
+        report_display_options $options,
+        \core\dml\sql_join $groupstudentsjoins,
+        \core\dml\sql_join $studentsjoins,
+        $questions,
+        $reporturl,
+    ) {
+        parent::__construct(
+            'mod-quiz-report-gradingstudents-report',
+            $quiz,
+            $context,
+            $qmsubselect,
+            $options,
+            $groupstudentsjoins,
+            $studentsjoins,
+            $questions,
+            $reporturl
+        );
     }
 
+    #[\Override]
     public function build_table() {
         if (!$this->rawdata) {
             return;
@@ -54,11 +83,13 @@ class report_table extends attempts_report_table {
         parent::build_table();
     }
 
+    #[\Override]
     protected function update_sql_after_count($fields, $from, $where, $params) {
         $fields .= ', quiza.id AS attemptid, quiza.attempt AS attemptnumber, quiza.preview';
         return [$fields, $from, $where, $params];
     }
 
+    #[\Override]
     public function get_sort_columns() {
         $sortcolumns = parent::get_sort_columns();
         if (empty($sortcolumns)) {
@@ -68,6 +99,7 @@ class report_table extends attempts_report_table {
         return $sortcolumns;
     }
 
+    #[\Override]
     public function col_fullname($attempt) {
         // The quiz report normally adds a review link here, but we don't want that,
         // so call the grandparent method.
@@ -152,12 +184,20 @@ class report_table extends attempts_report_table {
      */
     public function col_attempt(\stdClass $row): string {
         if (has_capability('mod/quiz:viewreports', $this->context)) {
-            $reviewlink = html_writer::tag('a', get_string('attemptid', 'quiz_gradingstudents',
-                $row->attemptnumber), [
-                'href' => new moodle_url('/mod/quiz/review.php', [
-                    'attempt' => $row->attemptid,
-                ]),
-            ]);
+            $reviewlink = html_writer::tag(
+                'a',
+                get_string(
+                    'attemptid',
+                    'quiz_gradingstudents',
+                    $row->attemptnumber
+                ),
+                [
+                    'href' => new moodle_url(
+                        '/mod/quiz/review.php',
+                        ['attempt' => $row->attemptid]
+                    ),
+                ]
+            );
         } else {
             $reviewlink = get_string('attemptid', 'quiz_gradingstudents', $row->attemptnumber);
         }
@@ -173,7 +213,9 @@ class report_table extends attempts_report_table {
     public function col_confirmationcode(\stdClass $row): string {
         if ($row->idnumber) {
             return \quiz_gradingstudents_ou_confirmation_code::get_confirmation_code(
-                $this->cm, (object) ['id' => $row->userid, 'idnumber' => $row->idnumber]);
+                $this->cm,
+                (object) ['id' => $row->userid, 'idnumber' => $row->idnumber]
+            );
         }
         return '-';
     }
@@ -253,10 +295,15 @@ class report_table extends attempts_report_table {
         $slots = implode(',', $slots);
         $result = $counts;
         if ($counts > 0) {
-            $result .= ' ' . html_writer::link($this->grade_question_url(
-                    $attempt->usageid, $slots, $type),
-                    get_string($gradestring, 'quiz_gradingstudents'),
-                    ['class' => 'gradetheselink']);
+            $result .= ' ' . html_writer::link(
+                $this->grade_question_url(
+                    $attempt->usageid,
+                    $slots,
+                    $type
+                ),
+                get_string($gradestring, 'quiz_gradingstudents'),
+                ['class' => 'gradetheselink']
+            );
         }
         return $result;
     }
@@ -298,23 +345,43 @@ class report_table extends attempts_report_table {
         $info = [];
         foreach (\core_user\fields::get_identity_fields($this->context) as $field) {
             if ($attempt->$field) {
-                $info[] = html_writer::div(get_string('fieldandvalue', 'quiz_gradingstudents',
-                    ['field' => \core_user\fields::get_display_name($field), 'value' => $attempt->$field]));
+                $info[] = html_writer::div(
+                    get_string(
+                        'fieldandvalue',
+                        'quiz_gradingstudents',
+                        ['field' => \core_user\fields::get_display_name($field), 'value' => $attempt->$field]
+                    )
+                );
             }
         }
 
         $cfmcode = \quiz_gradingstudents_ou_confirmation_code::get_confirmation_code(
-            $this->cm, (object) ['id' => $attempt->userid, 'idnumber' => $attempt->idnumber]);
+            $this->cm,
+            (object) ['id' => $attempt->userid, 'idnumber' => $attempt->idnumber]
+        );
         if ($cfmcode) {
-            $info[] = html_writer::div(get_string('fieldandvalue', 'quiz_gradingstudents',
-                ['field' => get_string('confirmationcodeheading', 'quiz_gradingstudents'), 'value' => $cfmcode]));
+            $info[] = html_writer::div(
+                get_string(
+                    'fieldandvalue',
+                    'quiz_gradingstudents',
+                    [
+                        'field' => get_string('confirmationcodeheading', 'quiz_gradingstudents'),
+                        'value' => $cfmcode,
+                    ]
+                )
+            );
         }
 
         echo $OUTPUT->heading(get_string('gradingstudentx', 'quiz_gradingstudents', $attempt->attemptnumber));
         echo implode("\n", $info);
-        echo html_writer::tag('p', html_writer::link(\quiz_gradingstudents_report::base_url($this->cm),
-            get_string('backtothelistofstudentattempts', 'quiz_gradingstudents')),
-            ['class' => 'mdl-align']);
+        echo html_writer::tag(
+            'p',
+            html_writer::link(
+                \quiz_gradingstudents_report::base_url($this->cm),
+                get_string('backtothelistofstudentattempts', 'quiz_gradingstudents')
+            ),
+            ['class' => 'mdl-align']
+        );
 
         // Display the form with one section for each attempt.
         $sesskey = sesskey();
@@ -331,17 +398,30 @@ class report_table extends attempts_report_table {
         $displayoptions->manualcomment = \question_display_options::EDITABLE;
         foreach ($attempt->questions as $slot => $question) {
             if (array_key_exists($slot, $this->questions)) {
-                if ($this->normalise_state($question->state) === $grade ||
-                    $question->state === $grade || $grade === 'all') {
+                if (
+                    $this->normalise_state($question->state) === $grade ||
+                    $question->state === $grade ||
+                    $grade === 'all'
+                ) {
                     echo $quba->render_question($slot, $displayoptions, $this->questions[$slot]->number);
                 }
             }
         }
 
-        echo html_writer::tag('div', html_writer::empty_tag('input', [
-                'type' => 'submit', 'value' => get_string('saveandgotothelistofattempts', 'quiz_gradingstudents')]),
-                ['class' => 'mdl-align']) .
-            html_writer::end_tag('div') . html_writer::end_tag('form');
+        echo html_writer::tag(
+            'div',
+            html_writer::empty_tag(
+                'input',
+                [
+                    'type' => 'submit',
+                    'value' => get_string(
+                        'saveandgotothelistofattempts',
+                        'quiz_gradingstudents'
+                    ),
+                ]
+            ),
+            ['class' => 'mdl-align']
+        ) . html_writer::end_tag('div') . html_writer::end_tag('form');
 
         $PAGE->requires->string_for_js('changesmadereallygoaway', 'moodle');
         $PAGE->requires->js_call_amd('core_form/changechecker', 'watchFormById', ['manualgradingform']);
@@ -393,9 +473,13 @@ class report_table extends attempts_report_table {
         if (!$quizattempts) {
             return [];
         }
-        $usageidlist = array_map(function($quizattempt) {
-            return $quizattempt->usageid;
-        }, $quizattempts);
+
+        $usageidlist = array_map(
+            function ($quizattempt) {
+                return $quizattempt->usageid;
+            },
+            $quizattempts
+        );
 
         $attempts = $this->get_question_attempts_with_latest_state($usageidlist);
         if (!$attempts) {
@@ -443,7 +527,7 @@ class report_table extends attempts_report_table {
      * @param string $state
      * @return string|null the classified state.
      */
-    protected static function normalise_state($state) {
+    public static function normalise_state($state) {
         if (!$state) {
             return null;
         }

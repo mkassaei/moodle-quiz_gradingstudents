@@ -22,10 +22,6 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
-defined('MOODLE_INTERNAL') || die();
-
-
 /**
  * Quiz grading by students report upgrade function.
  * @param number $oldversion
@@ -35,7 +31,6 @@ function xmldb_quiz_gradingstudents_upgrade($oldversion) {
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2013071500) {
-
         // Add quiz_reports record.
         $record = new stdClass();
         $record->name         = 'gradingstudents';

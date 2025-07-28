@@ -27,7 +27,6 @@ use mod_quiz\local\reports\attempts_report_options;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class report_display_options extends attempts_report_options {
-
     /** @var bool display auto grade attempt. */
     public $includeauto = false;
     /**
@@ -60,11 +59,20 @@ class report_display_options extends attempts_report_options {
      */
     public $showconfirmationcode;
 
+    /**
+     * Construct display options.
+     *
+     * @param $mode
+     * @param $quiz
+     * @param $cm
+     * @param $course
+     */
     public function __construct($mode, $quiz, $cm, $course) {
         parent::__construct($mode, $quiz, $cm, $course);
         $this->setup_from_params();
     }
 
+    #[\Override]
     public function setup_from_params() {
         parent::setup_from_params();
         $context = \context_module::instance($this->cm->id);
@@ -75,10 +83,11 @@ class report_display_options extends attempts_report_options {
         $this->shownames = has_capability('quiz/grading:viewstudentnames', $context);
         $this->showidentityfields = has_capability('quiz/grading:viewidnumber', $context);
         $this->showconfirmationcode = \quiz_gradingstudents_ou_confirmation_code::quiz_can_have_confirmation_code(
-            $this->cm->idnumber);
-
+            $this->cm->idnumber
+        );
     }
 
+    #[\Override]
     public function get_url_params() {
         $params = parent::get_url_params();
         $params['includeauto'] = $this->includeauto;
