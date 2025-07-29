@@ -29,7 +29,6 @@ $string['attempt'] = 'Attempt';
 $string['attemptid'] = 'Attempt {$a}';
 $string['attemptstograde'] = 'Attempts to grade';
 $string['automaticallygraded'] = 'Automatically graded';
-$string['studentpi'] = 'Student PI';
 
 $string['backtothelistofstudentattempts'] = 'Back to the list of student attempts';
 
@@ -42,11 +41,11 @@ $string['fieldandvalue'] = '{$a->field}: <strong>{$a->value}</strong>';
 $string['grade'] = 'grade';
 $string['gradeall'] = 'grade all';
 $string['graded'] = '(graded)';
-$string['gradingstudents'] = 'Manual grading by student';
 $string['grading:viewidnumber'] = 'See student idnumbers while grading';
 $string['grading:viewstudentnames'] = 'See student names while grading';
 $string['gradingall'] = 'All {$a} attempts on this question.';
 $string['gradingattempt'] = 'Attempt number {$a->attempt} for {$a->fullname}';
+$string['gradingstudents'] = 'Manual grading by student';
 $string['gradingstudentx'] = 'Grading questions in attempt <strong>{$a}</strong>';
 $string['gradingungraded'] = '{$a} ungraded attempts';
 
@@ -55,15 +54,16 @@ $string['hideautomaticallygraded'] = 'Hide questions that have been graded autom
 $string['nothingfound'] = 'Nothing to display';
 
 $string['pluginname'] = 'Manual grading by student';
+$string['privacy:metadata'] = 'The Manual grading by student plugin does not store any personal data.';
 
 $string['questionsthatneedgrading'] = 'Questions that need grading';
 
 $string['saveandgotothelistofattempts'] = 'Save and go to the list of attempts';
 $string['showstudentnames'] = 'Show student names';
 $string['student'] = 'Student';
+$string['studentpi'] = 'Student PI';
 
 $string['tograde'] = 'To grade';
 $string['total'] = 'Total';
 
 $string['updategrade'] = 'update grades';
-$string['privacy:metadata'] = 'The Manual grading by student plugin does not store any personal data.';

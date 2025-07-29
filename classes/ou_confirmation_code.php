@@ -14,6 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace quiz_gradingstudents;
+use stdClass;
+use core_text;
+
 /**
  * This class implements the OU's 'Confirmation code' algorithm for end-of-course assessed tasks.
  *
@@ -24,7 +28,7 @@
  * @copyright  2013 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class quiz_gradingstudents_ou_confirmation_code {
+class ou_confirmation_code {
     /** @var int value used in the calculation. */
     const HASH_START = 5381;
     /** @var int value used in the calculation. */
@@ -46,7 +50,6 @@ class quiz_gradingstudents_ou_confirmation_code {
         if (!preg_match('~\w+-\w+\.((?i:eca|exm|icme|prj)\d+)~', $quizidnumber ?? '', $matches)) {
             return null;
         }
-
         return $matches[1];
     }
 
@@ -57,7 +60,7 @@ class quiz_gradingstudents_ou_confirmation_code {
      * @param stdClass $user the user object for the student. (Only id and idnumber required.)
      * @return null|string the computed code if relevant, else null.
      */
-    public static function get_confirmation_code($cm, stdClass $user): ?string {
+    public static function get_confirmation_code(stdClass|cm_info $cm, stdClass $user): ?string {
         $task = self::quiz_can_have_confirmation_code($cm->idnumber);
         if (!$task) {
             return null;
@@ -127,13 +130,14 @@ class quiz_gradingstudents_ou_confirmation_code {
     /**
      * Update the effective $module, $pres, if the user appears to be in a variant.
      *
-     * @param string $module from quiz idnumbe.
-     * @param string $pres from quiz idnumbe.
-     * @param stdClass|cm_info $cm quiz cm
-     * @param stdClass $user user.
-     * @return string[] array with two elements, [$module, $pres].
+     * @param string $module, from quiz idnumber.
+     * @param string $pres, from quiz idnumber.
+     * @param stdClass $cm, quiz cm.
+     * @param stdClass $user, user.
+     * @return array, array with two elements, [$module, $pres].
+     * @throws \coding_exception
      */
-    public static function update_for_variant(string $module, string $pres, $cm, stdClass $user): array {
+    public static function update_for_variant(string $module, string $pres, stdClass $cm, stdClass $user): array {
         $variants = \local_oudataload\backend::get_course_and_pres_codes($cm->course, $user->id);
         if (!$variants) {
             return [$module, $pres];
