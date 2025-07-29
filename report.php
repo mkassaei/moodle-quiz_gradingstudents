@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 use mod_quiz\local\reports\attempts_report;
 use quiz_gradingstudents\report_table;
 use quiz_gradingstudents\report_display_options;
@@ -31,6 +32,7 @@ use mod_quiz\quiz_attempt;
  */
 class quiz_gradingstudents_report extends attempts_report {
 
+    #[\Override]
     public function display($quiz, $cm, $course) {
         global $OUTPUT;
         // Check permissions.
@@ -139,9 +141,11 @@ class quiz_gradingstudents_report extends attempts_report {
     /**
      * Return the base URL of the report.
      *
-     * @return moodle_url the URL.
+     * @param cm_info|stdClass $cm
+     * @return moodle_url
+     * @throws \core\exception\moodle_exception
      */
-    public static function base_url($cm) {
+    public static function base_url(cm_info|stdClass $cm): moodle_url {
         return new moodle_url('/mod/quiz/report.php', ['id' => $cm->id, 'mode' => 'gradingstudents']);
     }
 }

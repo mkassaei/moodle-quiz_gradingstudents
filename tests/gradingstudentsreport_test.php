@@ -15,17 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Unit tests for {@link quiz_gradingstudents_report}
+ * Unit tests for quiz_gradingstudents report
  *
  * @package    quiz_gradingstudents
  * @copyright  2013 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+namespace quiz_gradingstudents;
+use stdClass;
+use ReflectionClass;
+use advanced_testcase;
+use question_engine;
 use mod_quiz\quiz_settings;
 use mod_quiz\quiz_attempt;
-use quiz_gradingstudents\report_display_options;
-use quiz_gradingstudents\report_table;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -33,29 +36,23 @@ global $CFG;
 require_once($CFG->dirroot . '/mod/quiz/report/gradingstudents/report.php');
 
 /**
- * This class provides testable methods from quiz_gradingstudents_report by making them public
+ * Unit tests for quiz_gradingstudents report
  *
  * @copyright  2013 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class quiz_gradingstudents_testable_report extends quiz_gradingstudents\report_table {
-    public static function normalise_state($state) {
-        return parent::normalise_state($state);
-    }
-}
+final class gradingstudentsreport_test extends advanced_testcase {
 
-/**
- * Unit tests for {@link quiz_gradingstudents_report}
- *
- * @copyright  2013 The Open University
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-class gradingstudentsreport_test extends advanced_testcase {
-
-    public function test_normalise_state() {
-        $this->assertEquals('needsgrading', quiz_gradingstudents_testable_report::normalise_state('needsgrading'));
-        $this->assertEquals('autograded', quiz_gradingstudents_testable_report::normalise_state('graded'));
-        $this->assertEquals('manuallygraded', quiz_gradingstudents_testable_report::normalise_state('mangr'));
+    /**
+     * Verify normalise state.
+     *
+     * @return void
+     * @covers ::normalise_state
+     */
+    public function test_normalise_state(): void {
+        $this->assertEquals('needsgrading', report_table::normalise_state('needsgrading'));
+        $this->assertEquals('autograded', report_table::normalise_state('graded'));
+        $this->assertEquals('manuallygraded', report_table::normalise_state('mangr'));
     }
 
     /**
@@ -126,7 +123,7 @@ class gradingstudentsreport_test extends advanced_testcase {
             $quba->get_question_attempt(1)->manual_grade(
                 'Comment', 3, FORMAT_HTML, $timestamp + 1200);
             question_engine::save_questions_usage_by_activity($quba);
-            $update = new \stdClass();
+            $update = new stdClass();
             $update->id = $attemptobj->get_attemptid();
             $update->timemodified = $timestamp + 1200;
             $update->sumgrades = $quba->get_total_mark();

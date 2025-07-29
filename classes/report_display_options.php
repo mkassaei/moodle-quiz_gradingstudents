@@ -15,7 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace quiz_gradingstudents;
-
+use quiz_gradingstudents;
+use cm_info;
+use stdClass;
 use mod_quiz\local\reports\attempts_report_options;
 
 
@@ -60,11 +62,20 @@ class report_display_options extends attempts_report_options {
      */
     public $showconfirmationcode;
 
-    public function __construct($mode, $quiz, $cm, $course) {
+    /**
+     *  Constructor for report display options
+     *
+     * @param string $mode
+     * @param stdClass $quiz
+     * @param cm_info|stdClass $cm
+     * @param stdClass $course
+     */
+    public function __construct(string $mode, stdClass $quiz, cm_info|stdClass $cm, stdClass $course) {
         parent::__construct($mode, $quiz, $cm, $course);
         $this->setup_from_params();
     }
 
+    #[\Override]
     public function setup_from_params() {
         parent::setup_from_params();
         $context = \context_module::instance($this->cm->id);
@@ -74,11 +85,12 @@ class report_display_options extends attempts_report_options {
         $this->includeauto = optional_param('includeauto', false, PARAM_BOOL);
         $this->shownames = has_capability('quiz/grading:viewstudentnames', $context);
         $this->showidentityfields = has_capability('quiz/grading:viewidnumber', $context);
-        $this->showconfirmationcode = \quiz_gradingstudents_ou_confirmation_code::quiz_can_have_confirmation_code(
+        $this->showconfirmationcode = ou_confirmation_code::quiz_can_have_confirmation_code(
             $this->cm->idnumber);
 
     }
 
+    #[\Override]
     public function get_url_params() {
         $params = parent::get_url_params();
         $params['includeauto'] = $this->includeauto;

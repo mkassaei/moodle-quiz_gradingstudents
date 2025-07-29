@@ -17,10 +17,16 @@
 namespace quiz_gradingstudents;
 
 use html_writer;
+use mod_quiz\local\reports\attempts_report_options;
 use moodle_url;
 use mod_quiz\local\reports\attempts_report_table;
+use cm_info;
+use stdClass;
+use context;
 use table_sql;
 use qubaid_list;
+use question_engine;
+use question_engine_data_mapper;
 
 /**
  * This file defines the quiz gradingstudents table for helping teachers manually grade questions by students.
@@ -34,14 +40,28 @@ class report_table extends attempts_report_table {
     /**
      * @var object cm current course module object of this table.
      */
-    public $cm;
+    public cm_info|stdClass $cm;
 
-    public function __construct($quiz, $context, $qmsubselect, report_display_options $options,
-        \core\dml\sql_join $groupstudentsjoins, \core\dml\sql_join $studentsjoins, $questions, $reporturl) {
+    /**
+     * Constructor for report table.
+     *
+     * @param stdClass $quiz
+     * @param context $context
+     * @param null|string $qmsubselect
+     * @param report_display_options $options
+     * @param \core\dml\sql_join $groupstudentsjoins Contains joins, wheres, params
+     * @param \core\dml\sql_join $studentsjoins Contains joins, wheres, params
+     * @param array $questions
+     * @param moodle_url $reporturl
+     *
+     */
+    public function __construct(stdClass $quiz, context $context, ?string $qmsubselect, report_display_options $options,
+        \core\dml\sql_join $groupstudentsjoins, \core\dml\sql_join $studentsjoins, array $questions, moodle_url $reporturl) {
         parent::__construct('mod-quiz-report-gradingstudents-report', $quiz, $context,
             $qmsubselect, $options, $groupstudentsjoins, $studentsjoins, $questions, $reporturl);
     }
 
+    #[\Override]
     public function build_table() {
         if (!$this->rawdata) {
             return;
@@ -54,11 +74,13 @@ class report_table extends attempts_report_table {
         parent::build_table();
     }
 
+    #[\Override]
     protected function update_sql_after_count($fields, $from, $where, $params) {
         $fields .= ', quiza.id AS attemptid, quiza.attempt AS attemptnumber, quiza.preview';
         return [$fields, $from, $where, $params];
     }
 
+    #[\Override]
     public function get_sort_columns() {
         $sortcolumns = parent::get_sort_columns();
         if (empty($sortcolumns)) {
@@ -68,6 +90,7 @@ class report_table extends attempts_report_table {
         return $sortcolumns;
     }
 
+    #[\Override]
     public function col_fullname($attempt) {
         // The quiz report normally adds a review link here, but we don't want that,
         // so call the grandparent method.
@@ -77,10 +100,12 @@ class report_table extends attempts_report_table {
     /**
      * Define the table column, headers and sorting.
      *
-     * @param $allowedjoins
-     * @param $options
+     * @param \core\dml\sql_join $allowedjoins
+     * @param report_display_options $options
+     * @return void
+     * @throws \coding_exception
      */
-    public function define_table($allowedjoins, $options): void {
+    public function define_table(\core\dml\sql_join $allowedjoins, report_display_options $options): void {
 
         $this->setup_sql_queries($allowedjoins);
         // Define table columns and headers.
@@ -106,7 +131,8 @@ class report_table extends attempts_report_table {
      * Add columns and headers to table base on display options.
      *
      * @param report_display_options $options report display options.
-     * @return array [$column, $header]
+     * @return array
+     * @throws \coding_exception
      */
     public function add_columns_and_headers_from_options(report_display_options $options): array {
         $columns = [];
@@ -149,6 +175,8 @@ class report_table extends attempts_report_table {
      *
      * @param \stdClass $row
      * @return string
+     * @throws \coding_exception
+     * @throws \core\exception\moodle_exception
      */
     public function col_attempt(\stdClass $row): string {
         if (has_capability('mod/quiz:viewreports', $this->context)) {
@@ -172,7 +200,7 @@ class report_table extends attempts_report_table {
      */
     public function col_confirmationcode(\stdClass $row): string {
         if ($row->idnumber) {
-            return \quiz_gradingstudents_ou_confirmation_code::get_confirmation_code(
+            return ou_confirmation_code::get_confirmation_code(
                 $this->cm, (object) ['id' => $row->userid, 'idnumber' => $row->idnumber]);
         }
         return '-';
@@ -225,6 +253,7 @@ class report_table extends attempts_report_table {
      * @param string $slots comma-sparated list of the slots to grade.
      * @param string $grade type of things to grade, e.g. 'needsgrading'.
      * @return moodle_url the requested URL.
+     * @throws \core\exception\coding_exception
      */
     protected function grade_question_url($usageid, $slots, $grade) {
         $url = \quiz_gradingstudents_report::base_url($this->cm);
@@ -239,6 +268,8 @@ class report_table extends attempts_report_table {
      * @param string $type type of attempts, e.g. 'needsgrading'.
      * @param string $gradestring corresponding lang string for the action, e.g. 'grade'.
      * @return string formatted string.
+     * @throws \coding_exception
+     * @throws \core\exception\coding_exception
      */
     protected function format_count_for_table($attempt, $type, $gradestring) {
         $counts = $attempt->$type;
@@ -264,9 +295,14 @@ class report_table extends attempts_report_table {
     /**
      * Display the UI for grading or regrading questions.
      *
+     * @param report_display_options $options
      * @param string $grade the type of slots to grade, e.g. 'needsgrading'.
+     * @param core\dml\sql_join $allowedjoins
+     * @return void
+     * @throws core\exception\moodle_exception
      */
-    public function display_grading_interface(report_display_options $options, $grade, $allowedjoins) {
+    public function display_grading_interface(report_display_options $options, string$grade,
+                                              \core\dml\sql_join $allowedjoins): void {
         global $OUTPUT, $PAGE;
         // We only want to re used the table data for the grading interface, not display the table.
         $this->define_table($allowedjoins, $options);
@@ -293,7 +329,7 @@ class report_table extends attempts_report_table {
         $slots = $options->slots;
 
         // Print the heading and form.
-        echo \question_engine::initialise_js();
+        echo question_engine::initialise_js();
 
         $info = [];
         foreach (\core_user\fields::get_identity_fields($this->context) as $field) {
@@ -303,7 +339,7 @@ class report_table extends attempts_report_table {
             }
         }
 
-        $cfmcode = \quiz_gradingstudents_ou_confirmation_code::get_confirmation_code(
+        $cfmcode = ou_confirmation_code::get_confirmation_code(
             $this->cm, (object) ['id' => $attempt->userid, 'idnumber' => $attempt->idnumber]);
         if ($cfmcode) {
             $info[] = html_writer::div(get_string('fieldandvalue', 'quiz_gradingstudents',
@@ -356,7 +392,7 @@ class report_table extends attempts_report_table {
     private function get_question_attempts_with_latest_state(array $qubaidlist): array {
         global $DB;
         // Sub query to get the latest state of an attempt.
-        $dm = new \question_engine_data_mapper();
+        $dm = new question_engine_data_mapper();
         $qubaids = new qubaid_list($qubaidlist);
         [$subquery, $subqueryparams] = $dm->question_attempt_latest_state_view('', $qubaids);
         $sql = "SELECT questionattemptid, slot, questionid, questionusageid AS usageid, state
@@ -388,8 +424,11 @@ class report_table extends attempts_report_table {
 
     /**
      * Return an array of quiz attempts with all relevant information for each attempt.
+     *
+     * @param array $quizattempts
+     * @return array
      */
-    protected function get_formatted_student_attempts($quizattempts) {
+    protected function get_formatted_student_attempts(array $quizattempts): array {
         if (!$quizattempts) {
             return [];
         }
@@ -443,7 +482,7 @@ class report_table extends attempts_report_table {
      * @param string $state
      * @return string|null the classified state.
      */
-    protected static function normalise_state($state) {
+    public static function normalise_state($state): string {
         if (!$state) {
             return null;
         }
